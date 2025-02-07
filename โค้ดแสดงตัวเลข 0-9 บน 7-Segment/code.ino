@@ -1,29 +1,6 @@
-/*
- * MIT License
- * 
- * Copyright (c) 2025 CyberKitty404
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
- const int segmentPins[] = {2, 3, 4, 5, 6, 7, 8}; // ขา a-g ของ 7-Segment
-const int dpPin = 9; // ขาจุดทศนิยม (ถ้าใช้)
+const int segmentPins[] = {2, 3, 4, 5, 6, 7, 8}; // Segment a-g
+const int dpPin = 9; // Decimal Point
+const int resetButton = 10; // Reset Button
 
 const byte numbers[10] = {
   0b00111111, // 0
@@ -38,20 +15,54 @@ const byte numbers[10] = {
   0b01101111  // 9
 };
 
-int counter = 9; // เริ่มที่ 9
+int counter = 9; // Start at 9
+bool buttonPressed = false;
+bool countdownFinished = false;
 
 void setup() {
+  Serial.begin(9600); // Start Serial Monitor
+
   for (int i = 0; i < 7; i++) {
     pinMode(segmentPins[i], OUTPUT);
   }
   pinMode(dpPin, OUTPUT);
+  pinMode(resetButton, INPUT_PULLUP); // Enable pull-up resistor
+
+  Serial.println("Countdown starts from 9");
 }
 
 void loop() {
-  while (counter >= 0) {
-    showDigit(counter);
-    delay(1000); // นับถอยหลังทุก 1 วินาที
-    counter--; // ลดค่าทีละ 1
+  if (!countdownFinished) {
+    while (counter >= 0) {
+      Serial.print("Countdown: ");
+      Serial.println(counter);
+
+      showDigit(counter);
+      delay(1000); // Wait 1 second
+      counter--;
+
+      checkReset(); // Check if reset button is pressed
+    }
+
+    Serial.println("Countdown finished");
+    countdownFinished = true; // Mark countdown as completed
+  }
+
+  // **Allow pressing the reset button at any time**
+  checkReset();
+}
+
+void checkReset() {
+  if (digitalRead(resetButton) == LOW) {
+    if (!buttonPressed) {
+      Serial.println("Resetting countdown...");
+      counter = 9; // Reset to 9
+      countdownFinished = false; // Allow countdown to restart
+      buttonPressed = true; // Mark button as pressed
+      delay(200); // Debounce delay
+    }
+  } else {
+    buttonPressed = false; // Reset button state when released
   }
 }
 
@@ -59,7 +70,7 @@ void showDigit(int num) {
   for (int i = 0; i < 7; i++) {
     digitalWrite(segmentPins[i], bitRead(numbers[num], i));
   }
-  digitalWrite(dpPin, HIGH); // เปิดจุดทศนิยม
+  digitalWrite(dpPin, HIGH); // Turn on Decimal Point
   delay(500);
-  digitalWrite(dpPin, LOW); // ปิดจุดทศนิยม
+  digitalWrite(dpPin, LOW); // Turn off Decimal Point
 }
